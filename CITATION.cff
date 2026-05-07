@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+title: "NZ-OCDS Mapping: A draft New Zealand implementation profile for the Open Contracting Data Standard"
+message: "If you use this work, please cite it as below."
+type: dataset
+version: "0.4"
+date-released: "2026-05-07"
+authors:
+  - family-names: Walker-Tepania
+    given-names: Manaaki
+    affiliation: Project Unify
+license: CC-BY-4.0
+license-url: "https://creativecommons.org/licenses/by/4.0/"
+url: "https://github.com/manwaltep/nz-ocds-mapping"
+abstract: >
+  A draft New Zealand implementation profile for the Open Contracting
+  Data Standard (OCDS). Cross-references 114 OCDS 1.1.5 paths against
+  publicly available Government Electronic Tenders Service (GETS) data,
+  the NZ Government Procurement Rules (5th edition, 2025), and the
+  NZGP Approved Government Model Templates. Proposes 18 NZ-specific
+  extensions, each anchored to a specific Procurement Rule and
+  glossary entry. Prepared as evidence that NZ's OGP commitment NZ0029
+  to OCDS alignment is technically feasible substantially ahead of
+  the current 2030 timeline.
+keywords:
+  - open-contracting
+  - ocds
+  - new-zealand
+  - government-procurement
+  - transparency
+  - nz0029
+  - open-government-partnership
+  - palantir-foundry
+references:
+  - type: report
+    title: "NZ Government Procurement Rules (5th edition, 2025)"
+    authors:
+      - name: "New Zealand Government Procurement (MBIE)"
+    isbn: "978-1-991143-00-6"
+    date-released: "2025-08-01"
+  - type: standard
+    title: "Open Contracting Data Standard 1.1.5"
+    authors:
+      - name: "Open Contracting Partnership"
+    url: "https://standard.open-contracting.org/1.1/"
+  - type: report
+    title: "Improve Government Procurement Transparency (NZ0029)"
+    authors:
+      - name: "Open Government Partnership"
+    url: "https://www.opengovpartnership.org/members/new-zealand/commitments/NZ0029/"

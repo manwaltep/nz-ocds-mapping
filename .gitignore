@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtualenvs
+.venv/
+venv/
+env/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+~$*.xlsx                 # Excel lock files
+.~lock.*
+
+# Local notes / scratch (don't commit working notes)
+SCRATCH.md
+TODO.local.md
+notes/
+
+# Generated outputs to NOT track in main, only via git tags
+# (the build script regenerates these locally; we only commit canonical versions)
+mapping/ocds-nz-mapping-v*.preview.xlsx
