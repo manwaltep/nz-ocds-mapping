@@ -103,3 +103,96 @@ Many awarded contracts (especially panels and pre-qualified supplier lists) have
 This is properly OCDS-modelled: if there's no agreed value, omit `awards[].value.amount`. The pipeline does this. The omission tells consumers what's true ("we have an award but no published value"), which is more honest than imputing a zero.
 
 But it also means that **OCDS aggregation of NZ procurement spend will systematically under-count panel and call-off contracts** until contract management data starts flowing (Rule 34 mandates the data to exist; it's just not centrally published — see "Honest gaps" in the methodology).
+
+---
+
+## Finding 4 — Award outcomes recorded in unstructured `Comments` field
+
+**Severity:** High. The actual awardees of many contracts are not in the structured supplier data.
+
+**Where:** `GETS_award_notices.Comments` column (free text).
+
+### What we found
+
+While investigating OCID `ocds-nz-gets-28888398` (Christchurch City Council "3W Project Delivery Panel"), we noticed the GETS public web page lists 16 panel members in a structured "This tender has been awarded" section *plus* a separate free-text section titled **"Further Award Information: Contracts were awarded to:"** with **18 supplier names**. Four of those 18 names are not in the structured `GETS_supplier_data` table for that RFx:
+
+- `Project Max`
+- `Ako Engineers`
+- `Lucas Haining` (the supplier exists in `GETS_supplier_data` for *other* RFx_IDs, just not 28888398)
+- `Pinnacles Civil` (similar — exists for other RFx_IDs)
+
+Querying the source: the entire free-text content is stored in `GETS_award_notices.Comments` for that RFx, exactly as displayed on the website.
+
+### Format variation by agency
+
+Sampling 15+ different agencies' Comments fields surfaced at least six distinct formats:
+
+| Format | Example | Parseability |
+|---|---|---|
+| **DOC structured template** | `Successful supplier's name: Mainland Vector Contracting Ltd / Successful supplier's NZBN: 9429032195583 / Successful supplier's address: ...` | ★★★★★ Highest — labelled fields, includes uncorrupted 13-digit NZBNs |
+| **Education Payroll inline** | `awarded to Dayforce New Zealand Limited (NZBN 942903980691)` | ★★★★ High — fixed pattern, NZBN inline |
+| **NZTA single-line** | `Tonkin & Taylor was awarded to this contract for a total value $168,000.00` | ★★★ Medium — simple regex |
+| **Generic single-supplier** | `Contract for D365 Development Squad awarded to Capgemini Limited` | ★★★ Medium |
+| **Free-form multi-supplier list** | `Contracts were awarded to:  AECOM New Zealand Limited Benmore Mel Engineering Consultants Stantec  TSA Riley...` | ★★ Low — no clear delimiters between names |
+| **Value bands only** | `Contract length = 1 year Contract value = $100,000 - $150,000` | n/a — no awardee info |
+
+### A particularly important sub-finding: the `Comments` field can recover corrupted NZBNs
+
+For Department of Conservation contracts, the `Comments` field contains **clean 13-digit NZBNs** in the form `Successful supplier's NZBN: 9429032195583`, while the structured `Supplier_NZBN` column for the same contract typically reads `9.43E+12` (see Finding 1).
+
+So the prose form of the data is, in this respect, **higher quality than the structured form** — it preserves precision that the structured-data publication pipeline destroys. A Comments parser can recover real NZBNs that no longer exist in the structured table.
+
+### Internal inconsistency: `Award_Type = "Not Awarded"` on awarded contracts
+
+Across the entire sample we examined, the `Award_Type` column reads `"Not Awarded"` even on contracts that the Comments field clearly describes as awarded (often with named recipients and specific dollar amounts). The column appears to default to `"Not Awarded"` and is not consistently updated by agencies. **Consumers cannot rely on `Award_Type` alone to filter for awarded contracts.**
+
+### Implications for OCDS
+
+- A pipeline reading only structured fields **systematically under-reports awardees** for any contract whose award narrative lives in `Comments` and adds names beyond what's in `supplier_data`.
+- The Comments field is, for a meaningful subset of agencies, the **authoritative awardee source** — and parseable with reasonable confidence.
+- A parser-augmented OCDS feed materially improves downstream coverage. It also gives consumers an honest signal — `"this awardee was extracted from a free-text narrative, not a structured field"` — that lets them weight the data appropriately.
+
+### Mitigation in this implementation
+
+A separate Python transform (`comments_parser.py`, planned) will extract awardees from `GETS_award_notices.Comments` using format-specific regexes with confidence scores, and emit a side dataset (`gets_award_comments_parsed`) that the OCDS emitter can join in to enrich `awards[].suppliers[]`.
+
+---
+
+## Finding 5 — `Supplier_NZBN` table semantics inconsistent across tenders
+
+**Severity:** High. The same column means different things on different rows.
+
+**Where:** `GETS_supplier_data` and `GETS_supplier_data_historic`.
+
+### What we found
+
+Cross-referencing the structured `GETS_supplier_data` table against the awardees named in `Comments` across multiple RFx_IDs surfaces **inconsistent semantics**:
+
+- **For RFx 24235499** (CCC "Pavement and Utilities Investigations Panel"), `GETS_supplier_data` has exactly 3 rows — `CORDE LIMITED`, `LUCAS HAINING LIMITED`, `The Isaac Construction Co Ltd` — and the Comments narrative says *"This contract has been awarded to CORDE Limited, Isaac Construction Limited and Lucas Haining Limited."* **Structured data = awardees. Consistent.**
+
+- **For RFx 28888398** (CCC "3W Project Delivery Panel"), `GETS_supplier_data` has 16 rows and the Comments narrative names 18 awardees — with 4 names absent from `supplier_data`, 1 row in `supplier_data` (Pinnacles Civil Group Limited per the website Section 1) absent from our extract, and a duplicate AECOM entry that doesn't match what the website displays. **Structured data ≠ Comments awardees.**
+
+There is **no flag** in the structured schema indicating which interpretation applies to a given row. The column could be representing:
+
+- Actual awardees (RFx 24235499 case)
+- Pre-qualified panel members eligible to bid (RFx 28888398 case — likely)
+- Bidders who submitted responses (other cases — possibly)
+
+### Implications for OCDS
+
+The OCDS schema distinguishes:
+
+- `tender.tenderers[]` — entities who responded to the tender
+- `awards[].suppliers[]` — entities who actually won
+
+Without knowing which of these `Supplier_NZBN` represents on a given row, **a literal mapping puts the wrong data in the wrong OCDS field roughly half the time**. Cross-referencing against `Comments` (Finding 4) is the only way to disambiguate from the publicly-available data.
+
+### Mitigation
+
+The forthcoming `comments_parser.py` transform will surface a `confidence` column on each parsed awardee, and the OCDS emitter will treat:
+
+- `supplier_data` ∩ Comments-extracted = **awardee** → `awards[].suppliers[]`
+- `supplier_data` only (no Comments mention) = **probable bidder** → `tender.tenderers[]` (or held back with a quality flag)
+- Comments only (no `supplier_data` row) = **awardee with no structured record** → `awards[].suppliers[]` with `name` populated, no identifier, sourced flag
+
+This won't be perfect (some agencies won't have parseable Comments at all), but it converts an unsignalled inconsistency into an explicit quality gradient.
