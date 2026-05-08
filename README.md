@@ -32,14 +32,16 @@ nz-ocds-mapping/
 │   ├── ocds-nz-mapping-v0.4.xlsx          ← canonical artefact (8 sheets)
 │   ├── ocds-nz-mapping-v0.1.xlsx          ← original baseline
 │   └── build_ocds_mapping.py              ← regenerator (produces the .xlsx)
+├── examples/
+│   ├── README.md                          ← what's in the worked example
+│   └── sample-release-ocds-nz-gets-11062705.json   ← DRT-validated OCDS release
 ├── docs/
-│   └── methodology.md                     ← how the mapping was built
-├── correspondence/
-│   ├── ocp-helpdesk-cover-email-v1.md     ← initial OCP review request draft
-│   ├── ocp-helpdesk-cover-email-v2.md     ← updated for v0.2
-│   └── ocp-helpdesk-cover-email-v3.md     ← current (for v0.3+)
+│   ├── methodology.md                     ← how the mapping was built
+│   └── data-quality-findings.md           ← issues found in MBIE's published GETS data
 └── extensions/                            ← future home for formal JSON schemas
 ```
+
+Working correspondence with OCP, MBIE, NZGP and others is held in a separate private companion repo. Available on request for substantive review.
 
 ## How to use the spreadsheet
 
@@ -105,11 +107,11 @@ This mapping is intended to fill the "mandatory fields TBD" vacuum with a workin
 
 ## Contact
 
-Maintainer: Manaaki Walker-Tepania, Project Unify
+Maintainer: Manaaki Walker-Tepania (independent researcher).
 
 Issues, suggestions, and corrections welcome via the [Issues tab](../../issues).
 
-For substantive technical review of the mapping methodology, you may also engage the OCDS Helpdesk at helpdesk@open-contracting.org — see `correspondence/ocp-helpdesk-cover-email-v3.md` for the framing we plan to use.
+For substantive technical review of the mapping methodology, you may also engage the OCDS Helpdesk at helpdesk@open-contracting.org.
 
 ---
 

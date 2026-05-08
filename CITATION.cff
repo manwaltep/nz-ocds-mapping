@@ -7,7 +7,6 @@ date-released: "2026-05-07"
 authors:
   - family-names: Walker-Tepania
     given-names: Manaaki
-    affiliation: Project Unify
 license: CC-BY-4.0
 license-url: "https://creativecommons.org/licenses/by/4.0/"
 url: "https://github.com/manwaltep/nz-ocds-mapping"
@@ -29,7 +28,7 @@ keywords:
   - transparency
   - nz0029
   - open-government-partnership
-  - palantir-foundry
+  - data-publication
 references:
   - type: report
     title: "NZ Government Procurement Rules (5th edition, 2025)"
