@@ -196,3 +196,35 @@ The forthcoming `comments_parser.py` transform will surface a `confidence` colum
 - Comments only (no `supplier_data` row) = **awardee with no structured record** → `awards[].suppliers[]` with `name` populated, no identifier, sourced flag
 
 This won't be perfect (some agencies won't have parseable Comments at all), but it converts an unsignalled inconsistency into an explicit quality gradient.
+
+---
+
+## Finding 6 — Prose entered into the `Business_Name` field
+
+**Severity:** Medium. Pollutes any analytical use of `GETS_supplier_data` as a business directory; surfaces as false-positive supplier matches in Comments parsing.
+
+**Where:** `GETS_supplier_data.Business_Name` and `GETS_supplier_data_historic.Business_Name`.
+
+### What we found
+
+Some rows in the structured supplier table have narrative text where a business name should be:
+
+| `RFx_ID` | `Business_Name` value |
+|---|---|
+| 27762591 | `Awarded` |
+| 23912010 | `Awarded to Bluehead Limited` |
+| 24893659 | `Awarded RFP Kainga Ora Civils Contractor Panel` |
+
+The first is a literal one-word fragment. The second buries a legitimate supplier name (`Bluehead Limited`) inside narrative context. The third is a panel description with no individual supplier at all.
+
+These appear to be agency data-entry errors at GETS source: rather than entering the business as `Bluehead Limited` and the procurement context elsewhere, the whole sentence was pasted into the `Business_Name` field.
+
+### Implications for OCDS
+
+A consumer treating `GETS_supplier_data.Business_Name` as a clean business directory will pick up these strings as if they were real businesses. The Comments parser hit this because it uses `Business_Name` values as anchors when scanning multi-supplier free-form lists in Comments — and *every* "Contracts were awarded to:" Comments record contains the substring "Awarded", so the literal `"Awarded"` entry false-positively matched on every panel award notice.
+
+### Mitigation in this implementation
+
+The `comments_parser.py` transform filters out prose-shaped Business_Name values before using them as anchors. The current heuristic skips entries whose lowercased value starts with any of: `"awarded"`, `"successful supplier"`, `"preferred supplier"`, `"the contract"`, `"contracts "`, `"contract for"`, `"contract was"`, `"rfp "`, `"rfx "`. The build logs the number of filtered anchors so we can monitor the prevalence over time.
+
+This is mitigation, not a fix. The underlying data is still polluted; we're just being defensive when we use it.
